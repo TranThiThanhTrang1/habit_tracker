@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'add_habit_screen.dart';
 
 class HabitTrackerScreen extends StatefulWidget {
@@ -18,17 +20,30 @@ class _HabitTrackerScreenState extends State<HabitTrackerScreen> {
   @override
   void initState() {
     super.initState();
-    name = widget.username; // Gán tên người dùng
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      name = prefs.getString('name') ?? widget.username;
+      selectedHabitsMap = Map<String, String>.from(
+          jsonDecode(prefs.getString('selectedHabitsMap') ?? '{}'));
+      completedHabitsMap = Map<String, String>.from(
+          jsonDecode(prefs.getString('completedHabitsMap') ?? '{}'));
+    });
   }
 
   Future<void> _saveHabits() async {
-    // Lưu thói quen vào preferences trong tương lai
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selectedHabitsMap', jsonEncode(selectedHabitsMap));
+    await prefs.setString('completedHabitsMap', jsonEncode(completedHabitsMap));
   }
 
   Color _getColorFromHex(String hexColor) {
     hexColor = hexColor.replaceAll('#', '');
     if (hexColor.length == 6) {
-      hexColor = 'FF$hexColor'; // Thêm độ mờ nếu chưa có
+      hexColor = 'FF$hexColor'; // Add opacity if not included.
     }
     return Color(int.parse('0x$hexColor'));
   }
@@ -42,7 +57,7 @@ class _HabitTrackerScreenState extends State<HabitTrackerScreen> {
         print('Error parsing color for $habit: $e');
       }
     }
-    return Colors.blue; // Màu mặc định trong trường hợp lỗi
+    return Colors.blue; // Default color in case of error.
   }
 
   @override
@@ -79,31 +94,31 @@ class _HabitTrackerScreenState extends State<HabitTrackerScreen> {
             ListTile(
               title: Text('Configure'),
               onTap: () {
-                // Xử lý sự kiện khi chọn mục
+                // Handle navigation
               },
             ),
             ListTile(
               title: Text('Personal Info'),
               onTap: () {
-                // Xử lý sự kiện khi chọn mục
+                // Handle navigation
               },
             ),
             ListTile(
               title: Text('Reports'),
               onTap: () {
-                // Xử lý sự kiện khi chọn mục
+                // Handle navigation
               },
             ),
             ListTile(
               title: Text('Notifications'),
               onTap: () {
-                // Xử lý sự kiện khi chọn mục
+                // Handle navigation
               },
             ),
             ListTile(
               title: Text('Sign Out'),
               onTap: () {
-                // Xử lý sự kiện khi chọn mục
+                // Handle navigation
               },
             ),
           ],
@@ -136,8 +151,7 @@ class _HabitTrackerScreenState extends State<HabitTrackerScreen> {
                     itemCount: selectedHabitsMap.length,
                     itemBuilder: (context, index) {
                       String habit = selectedHabitsMap.keys.elementAt(index);
-                      Color habitColor =
-                          _getHabitColor(habit, selectedHabitsMap);
+                      Color habitColor = _getHabitColor(habit, selectedHabitsMap);
                       return Dismissible(
                         key: Key(habit),
                         direction: DismissDirection.endToStart,
@@ -155,10 +169,7 @@ class _HabitTrackerScreenState extends State<HabitTrackerScreen> {
                           child: const Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              Text(
-                                'Swipe to Complete',
-                                style: TextStyle(color: Colors.white),
-                              ),
+                              Text('Swipe to Complete', style: TextStyle(color: Colors.white)),
                               SizedBox(width: 10),
                               Icon(Icons.check, color: Colors.white),
                             ],
@@ -194,8 +205,7 @@ class _HabitTrackerScreenState extends State<HabitTrackerScreen> {
                     itemCount: completedHabitsMap.length,
                     itemBuilder: (context, index) {
                       String habit = completedHabitsMap.keys.elementAt(index);
-                      Color habitColor =
-                          _getHabitColor(habit, completedHabitsMap);
+                      Color habitColor = _getHabitColor(habit, completedHabitsMap);
                       return Dismissible(
                         key: Key(habit),
                         direction: DismissDirection.startToEnd,
@@ -214,46 +224,41 @@ class _HabitTrackerScreenState extends State<HabitTrackerScreen> {
                             children: [
                               Icon(Icons.undo, color: Colors.white),
                               SizedBox(width: 10),
-                              Text(
-                                'Swipe to Undo',
-                                style: TextStyle(color: Colors.white),
-                              ),
+                              Text('Swipe to Undo', style: TextStyle(color: Colors.white)),
                             ],
                           ),
                         ),
-                        child: _buildHabitCard(habit, habitColor,
-                            isCompleted: true),
+                        child: _buildHabitCard(habit, habitColor, isCompleted: true),
                       );
                     },
                   ),
                 ),
         ],
       ),
-      floatingActionButton: selectedHabitsMap.isEmpty
-          ? FloatingActionButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AddHabitScreen(),
-                  ),
-                );
-              },
-              child: const Icon(Icons.add),
-              backgroundColor: Colors.blue.shade700,
-              tooltip: 'Add Habits',
-            )
-          : null,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AddHabitScreen(),
+            ),
+          ).then((_) {
+            _loadUserData(); // Reload data after returning
+          });
+        },
+        child: const Icon(Icons.add),
+        backgroundColor: Colors.blue.shade700,
+        tooltip: 'Add Habits',
+      ),
     );
   }
 
-  Widget _buildHabitCard(String title, Color color,
-      {bool isCompleted = false}) {
+  Widget _buildHabitCard(String title, Color color, {bool isCompleted = false}) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       color: color,
       child: Container(
-        height: 60, // Điều chỉnh chiều cao cho các thẻ dày hơn.
+        height: 60,
         child: ListTile(
           title: Text(
             title.toUpperCase(),
