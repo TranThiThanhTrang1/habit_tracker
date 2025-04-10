@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'add_habit_screen.dart';
+import 'login_screen.dart';
+import 'personal_info_screen.dart';
+import 'reports_screen.dart';
 
 class HabitTrackerScreen extends StatefulWidget {
   final String username;
@@ -38,6 +41,15 @@ class _HabitTrackerScreenState extends State<HabitTrackerScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('selectedHabitsMap', jsonEncode(selectedHabitsMap));
     await prefs.setString('completedHabitsMap', jsonEncode(completedHabitsMap));
+  }
+
+  void _signOut(BuildContext context) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+    );
   }
 
   Color _getColorFromHex(String hexColor) {
@@ -92,33 +104,61 @@ class _HabitTrackerScreenState extends State<HabitTrackerScreen> {
               ),
             ),
             ListTile(
-              title: Text('Configure'),
-              onTap: () {
-                // Handle navigation
+              leading: const Icon(Icons.settings),
+              title: const Text('Configure'),
+              onTap: () async {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AddHabitScreen(),
+                  ),
+                ).then((updatedHabits) {
+                  _loadUserData(); // Reload data after returning
+                });
               },
             ),
             ListTile(
-              title: Text('Personal Info'),
+              leading: const Icon(Icons.person),
+              title: const Text('Personal Info'),
               onTap: () {
-                // Handle navigation
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PersonalInfoScreen(),
+                  ),
+                ).then((_) {
+                  _loadUserData(); // Reload data after returning
+                });
               },
             ),
             ListTile(
-              title: Text('Reports'),
+              leading: const Icon(Icons.analytics),
+              title: const Text('Reports'),
               onTap: () {
-                // Handle navigation
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ReportsScreen(),
+                  ),
+                );
               },
             ),
             ListTile(
-              title: Text('Notifications'),
+              leading: const Icon(Icons.notifications),
+              title: const Text('Notifications'),
               onTap: () {
-                // Handle navigation
+                Navigator.pop(context);
+                // Placeholder - implement if needed
               },
             ),
             ListTile(
-              title: Text('Sign Out'),
+              leading: const Icon(Icons.logout),
+              title: const Text('Sign Out'),
               onTap: () {
-                // Handle navigation
+                _signOut(context);
               },
             ),
           ],
